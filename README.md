@@ -1,72 +1,68 @@
-# Data Storage and Access Control Smart Contract
+# Anonymization Smart Contract
 
 ## Overview
-This smart contract provides a secure and decentralized system for storing and managing health data. It allows users to store encrypted health records, grant or revoke access to specific individuals, and retrieve data based on permissions. The contract ensures that only authorized users can access or modify health records.
+The **Anonymization Smart Contract** is designed to facilitate secure and private data submission for research purposes. It utilizes **ring signatures** to anonymize data submissions while ensuring aggregation and verification of the collected information.
 
 ## Features
-- **Decentralized Health Data Storage**: Users can store a reference to their health data (such as an IPFS hash) securely on the blockchain.
-- **Access Control Mechanism**: Users can grant read and write permissions to other principals for a specified duration.
-- **Authorization Checks**: Ensures that only authorized users can access or modify data.
-- **Data Integrity**: Health data records are stored with timestamps to track modifications.
+- **Ring Signature-Based Anonymization:** Ensures privacy by allowing users to submit data without revealing their identity.
+- **Data Aggregation:** Collects and processes submitted data for research analysis.
+- **Role-Based Access Control:** Limits submission and research access to authorized users.
+- **Secure Researcher Management:** Only the contract owner can add or remove authorized researchers.
+- **Tamper-Resistant Data Storage:** Stores aggregated data securely on-chain.
 
-## Constants
-- `contract-owner`: The original deployer of the contract.
-- `err-owner-only (u100)`: Error for operations restricted to the contract owner.
-- `err-unauthorized (u101)`: Error when an unauthorized user attempts an operation.
-- `err-already-exists (u102)`: Error when trying to create a record that already exists.
-- `err-not-found (u103)`: Error when attempting to access a non-existent record.
+## Error Codes
+| Code | Description |
+|------|-------------|
+| `ERR-NOT-AUTHORIZED (u100)` | User is not authorized to perform the action. |
+| `ERR-INVALID-DATA (u101)` | Submitted data is invalid. |
+| `ERR-RING-SIZE-INVALID (u102)` | Provided ring size is invalid. |
 
 ## Data Structures
-### Data Variables
-- `health-records`: A mapping of principal addresses to their respective health data records.
-  - `data-hash`: A 64-character UTF-8 string representing the IPFS hash or encrypted data reference.
-  - `is-active`: Boolean flag to indicate if the record is active.
-  - `last-updated`: A timestamp representing the last modification.
+### Mappings
+- **`aggregated-data`**: Stores aggregated statistics for each category.
+- **`ring-signatures`**: Stores ring signatures for verification.
+- **`authorized-researchers`**: Tracks authorized researchers.
 
-- `access-permissions`: A mapping of owner-accessor pairs to access permission details.
-  - `can-read`: Boolean indicating if the accessor can read the data.
-  - `can-write`: Boolean indicating if the accessor can modify the data.
-  - `expiration`: A timestamp representing when access expires.
+### Variables
+- **`submission-counter`**: Tracks the number of submissions.
+- **`contract-owner`**: Stores the contract owner.
 
 ## Functions
-### Private Functions
-#### `is-authorized(owner principal, accessor principal) -> bool`
-Checks whether the accessor has valid read permissions for the owner's data.
-
 ### Public Functions
-#### `store-health-data(data-hash (string-utf8 64)) -> (ok unit)`
-Stores or updates the health data for the transaction sender.
+#### `initialize-contract(researcher: principal) -> (ok true | err)`
+Initializes the contract and authorizes a researcher (only callable by the contract owner).
 
-#### `grant-access(accessor principal, can-read bool, can-write bool, duration uint) -> (ok unit)`
-Grants access to a specified principal with permissions for a given duration.
+#### `submit-anonymous-data(category: string, value: uint, ring-size: uint, ring-signature: buff) -> (ok submission-id | err)`
+Submits anonymized data under a specified category using a ring signature.
 
-#### `revoke-access(accessor principal) -> (ok unit)`
-Revokes access from a specific principal.
+#### `add-researcher(researcher: principal) -> (ok true | err)`
+Adds a new researcher to the authorized list (only callable by the contract owner).
 
-#### `read-health-data(owner principal) -> (ok {data-hash, is-active, last-updated}) | (err u103 | u101)`
-Retrieves health data if the caller is the owner or has been granted read access.
-
-#### `delete-health-data() -> (ok unit)`
-Deletes the transaction sender's health data record.
+#### `remove-researcher(researcher: principal) -> (ok true | err)`
+Removes a researcher from the authorized list (only callable by the contract owner).
 
 ### Read-Only Functions
-#### `check-access(owner principal, accessor principal) -> bool`
-Returns whether the accessor currently has read access to the owner's data.
+#### `get-aggregated-data(category: string) -> (ok data | none)`
+Retrieves aggregated data for a given category.
 
-#### `get-access-details(owner principal, accessor principal) -> (option {can-read, can-write, expiration})`
-Retrieves the access details for a specified owner-accessor pair.
+### Private Functions
+#### `generate-ring-members(size: uint) -> list`
+Generates a list of ring members for anonymity.
 
-## Security Considerations
-- **Access control**: Only authorized users can read or modify health data.
-- **Expiration-based access**: Access permissions are time-bound to enhance security.
-- **Immutable data reference**: Data storage uses hashes, ensuring integrity and security.
+#### `is-authorized(user: principal) -> bool`
+Checks if a user is authorized to submit data.
 
 ## Usage
-1. **Store health data**: Users upload their encrypted data to IPFS and store the reference.
-2. **Grant access**: Users provide access to other principals with time-limited permissions.
-3. **Read data**: Authorized users can retrieve the stored data reference.
-4. **Manage permissions**: Users can revoke or modify access as needed.
+1. **Initialize the contract** by adding an initial authorized researcher.
+2. **Submit anonymized data** under different research categories.
+3. **Retrieve aggregated data** for research analysis.
+4. **Manage researchers** to control data submission access.
+
+## Security Considerations
+- Only authorized researchers can submit and retrieve data.
+- Ring signatures help maintain anonymity while ensuring verifiable submissions.
+- Contract owner has exclusive control over researcher management.
 
 ## License
-This contract is open-source and can be used or modified under the terms of an appropriate open-source license.
+This project is open-source and available for modification under an appropriate open-source license.
 
